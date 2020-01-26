@@ -13,21 +13,28 @@ class ExampleSpider(scrapy.Spider):
     def parse(self, response):
         group = response.xpath('//div[@id="g_body"]') 
         #conf_names = group.xpath('//h3[count(ancestor::*)<9]/text()').getall()
-        conf_names = group.xpath('//h3/text()').getall()
+        conf_titles = group.xpath("//h3")
+        conf_names = []
+        for conf_title in conf_titles:
+            title = conf_title.xpath("./text()").getall()
+            if (len(title) > 1): continue # ignore (Page mantained by others)
+            conf_names.append(''.join(title))
         for idx, conf_name in enumerate(conf_names):
             # if conf_name in self.allowed_confs:
             xpath_string = '//ul[preceding-sibling::h3[1]/text()="{}"]'.format(conf_name)
             conf = group.xpath(xpath_string)
             conf_year_names = conf.xpath('.//li/a/text()').getall()
             conf_year_list = conf.xpath('.//li/a/@href').getall()
-            print('conf name: ', conf_name)
-            print("year names : ", conf_year_names, conf_year_list)
             for conf_year_name, conf_year in zip(conf_year_names, conf_year_list):
                 time.sleep(0.2)
                 year = re.findall(r'\d+', conf_year_name)
                 if len(year) == 0:
                     continue
-                meta = {"conf_name" : conf_name, "conf_year" : year[-1]}
+
+                print('conf name year url: ', conf_name.strip(), year[-1], conf_year)
+                continue
+
+                meta = {"conf_name" : conf_name.strip(), "conf_year" : year[-1]}
                 yield response.follow(conf_year, callback=self.parse_conf, meta=meta)
         pass
 
